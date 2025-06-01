@@ -23,10 +23,6 @@ services:
     expose:
       - "9000"
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.authentik-server.loadbalancer.server.port=9000"
-      - "traefik.http.routers.authentik-server.rule=Host(`${SERVICE_FQDN_AUTHENTIKSERVER_9000}`)"
-      - "traefik.http.routers.authentik-server.entrypoints=http"
       - "coolify.managed=true"
     volumes:
       - './media:/media'
