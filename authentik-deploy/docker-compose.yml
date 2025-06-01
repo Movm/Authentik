@@ -2,7 +2,7 @@ version: "3.9"
 
 networks:
   coolify:
-    external: true       # bereits durch Coolify/Traefik vorhanden
+    external: true
     name: coolify
 
 services:
@@ -19,7 +19,8 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${SERVICE_PASSWORD_POSTGRESQL}
       AUTHENTIK_REDIS__HOST: redis
       AUTHENTIK_SECRET_KEY: ${SERVICE_PASSWORD_64_AUTHENTIKSERVER}
-      SERVICE_FQDN_AUTHENTIKSERVER_9000: https://fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de
+      # Wichtig: Korrigierte FQDN ohne https://
+      SERVICE_FQDN_AUTHENTIKSERVER_9000: fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de
       AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-true}
       AUTHENTIK_EMAIL__HOST: ${AUTHENTIK_EMAIL__HOST}
       AUTHENTIK_EMAIL__PORT: ${AUTHENTIK_EMAIL__PORT}
@@ -31,12 +32,29 @@ services:
       AUTHENTIK_EMAIL__FROM: ${AUTHENTIK_EMAIL__FROM}
 
     labels:
+      # Basis Traefik Labels
       traefik.enable: "true"
-      traefik.http.routers.authentik.rule: Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)
-      traefik.http.routers.authentik.entrypoints: websecure
-      traefik.http.routers.authentik.tls.certresolver: letsencrypt
+      traefik.docker.network: "coolify"
+      
+      # HTTP Router (für Redirect)
+      traefik.http.routers.authentik-http.rule: "Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)"
+      traefik.http.routers.authentik-http.entrypoints: "web"
+      traefik.http.routers.authentik-http.middlewares: "authentik-redirect"
+      
+      # HTTPS Router
+      traefik.http.routers.authentik-https.rule: "Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)"
+      traefik.http.routers.authentik-https.entrypoints: "websecure"
+      traefik.http.routers.authentik-https.tls: "true"
+      traefik.http.routers.authentik-https.tls.certresolver: "letsencrypt"
+      
+      # Service
       traefik.http.services.authentik.loadbalancer.server.port: "9000"
-      traefik.docker.network: coolify
+      
+      # Redirect Middleware
+      traefik.http.middlewares.authentik-redirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.authentik-redirect.redirectscheme.permanent: "true"
+      
+      # Coolify Label
       coolify.managed: "true"
 
     volumes:
