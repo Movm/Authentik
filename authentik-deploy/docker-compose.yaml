@@ -3,6 +3,9 @@ services:
     image: 'ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.2.3}'
     restart: unless-stopped
     command: server
+    ports:
+      - "9000:9000"
+      - "9443:9443"
     environment:
       - SERVICE_FQDN_AUTHENTIKSERVER_9000
       - 'AUTHENTIK_REDIS__HOST=${REDIS_HOST:-redis}'
@@ -88,3 +91,9 @@ services:
       retries: 15
     volumes:
       - 'redis:/data'
+
+volumes:
+  authentik-db:
+    driver: local
+  redis:
+    driver: local
