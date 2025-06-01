@@ -33,7 +33,7 @@ services:
     labels:
       traefik.enable: "true"
       traefik.http.routers.authentik.rule: Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)
-      traefik.http.routers.authentik.entrypoints: https
+      traefik.http.routers.authentik.entrypoints: websecure
       traefik.http.routers.authentik.tls.certresolver: letsencrypt
       traefik.http.services.authentik.loadbalancer.server.port: "9000"
       traefik.docker.network: coolify
