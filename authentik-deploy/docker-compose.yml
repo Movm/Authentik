@@ -23,7 +23,12 @@ services:
     expose:
       - "9000"
     labels:
-      - "coolify.managed=true"
+      - traefik.enable=true
+      - traefik.http.routers.authentik.rule=Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)
+      - traefik.http.routers.authentik.entrypoints=websecure
+      - traefik.http.routers.authentik.tls.certresolver=letsencrypt
+      - traefik.http.services.authentik.loadbalancer.server.port=9000
+      - coolify.managed=true
     volumes:
       - './media:/media'
       - './custom-templates:/templates'
