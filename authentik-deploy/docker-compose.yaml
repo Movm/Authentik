@@ -1,146 +1,90 @@
-version: "3.9"
-
-networks:
-  coolify:
-    external: true
-    name: coolify
-
 services:
   authentik-server:
-    image: ghcr.io/goauthentik/server:2025.2.3
-    container_name: authentik-server
+    image: 'ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.2.3}'
     restart: unless-stopped
     command: server
-
     environment:
-      AUTHENTIK_POSTGRESQL__HOST: postgresql
-      AUTHENTIK_POSTGRESQL__USER: ${SERVICE_USER_POSTGRESQL}
-      AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DB:-authentik}
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${SERVICE_PASSWORD_POSTGRESQL}
-      AUTHENTIK_REDIS__HOST: redis
-      AUTHENTIK_SECRET_KEY: ${SERVICE_PASSWORD_64_AUTHENTIKSERVER}
-      # Wichtig: FQDN ohne https://
-      SERVICE_FQDN_AUTHENTIKSERVER_9000: fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de
-      AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-true}
-      AUTHENTIK_EMAIL__HOST: ${AUTHENTIK_EMAIL__HOST}
-      AUTHENTIK_EMAIL__PORT: ${AUTHENTIK_EMAIL__PORT}
-      AUTHENTIK_EMAIL__USERNAME: ${AUTHENTIK_EMAIL__USERNAME}
-      AUTHENTIK_EMAIL__PASSWORD: ${AUTHENTIK_EMAIL__PASSWORD}
-      AUTHENTIK_EMAIL__USE_TLS: ${AUTHENTIK_EMAIL__USE_TLS}
-      AUTHENTIK_EMAIL__USE_SSL: ${AUTHENTIK_EMAIL__USE_SSL}
-      AUTHENTIK_EMAIL__TIMEOUT: ${AUTHENTIK_EMAIL__TIMEOUT}
-      AUTHENTIK_EMAIL__FROM: ${AUTHENTIK_EMAIL__FROM}
-
-    labels:
-      # Basis Traefik Labels
-      traefik.enable: "true"
-      traefik.docker.network: "coolify"
-      
-      # HTTP Router (für Redirect) - KORRIGIERT: http statt web
-      traefik.http.routers.authentik-http.rule: "Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)"
-      traefik.http.routers.authentik-http.entrypoints: "http"
-      traefik.http.routers.authentik-http.middlewares: "authentik-redirect"
-      
-      # HTTPS Router - KORRIGIERT: https statt websecure
-      traefik.http.routers.authentik-https.rule: "Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)"
-      traefik.http.routers.authentik-https.entrypoints: "https"
-      traefik.http.routers.authentik-https.tls: "true"
-      traefik.http.routers.authentik-https.tls.certresolver: "letsencrypt"
-      
-      # Service
-      traefik.http.services.authentik.loadbalancer.server.port: "9000"
-      
-      # Redirect Middleware
-      traefik.http.middlewares.authentik-redirect.redirectscheme.scheme: "https"
-      traefik.http.middlewares.authentik-redirect.redirectscheme.permanent: "true"
-      
-      # Coolify Labels
-      coolify.managed: "true"
-
+      - SERVICE_FQDN_AUTHENTIKSERVER_9000
+      - 'AUTHENTIK_REDIS__HOST=${REDIS_HOST:-redis}'
+      - 'AUTHENTIK_POSTGRESQL__HOST=${POSTGRES_HOST:-postgresql}'
+      - 'AUTHENTIK_POSTGRESQL__USER=${SERVICE_USER_POSTGRESQL}'
+      - 'AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB:-authentik}'
+      - 'AUTHENTIK_POSTGRESQL__PASSWORD=${SERVICE_PASSWORD_POSTGRESQL}'
+      - 'AUTHENTIK_SECRET_KEY=${SERVICE_PASSWORD_64_AUTHENTIKSERVER}'
+      - 'AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING__ENABLED:-true}'
+      - 'AUTHENTIK_EMAIL__HOST=${AUTHENTIK_EMAIL__HOST}'
+      - 'AUTHENTIK_EMAIL__PORT=${AUTHENTIK_EMAIL__PORT}'
+      - 'AUTHENTIK_EMAIL__USERNAME=${AUTHENTIK_EMAIL__USERNAME}'
+      - 'AUTHENTIK_EMAIL__PASSWORD=${AUTHENTIK_EMAIL__PASSWORD}'
+      - 'AUTHENTIK_EMAIL__USE_TLS=${AUTHENTIK_EMAIL__USE_TLS}'
+      - 'AUTHENTIK_EMAIL__USE_SSL=${AUTHENTIK_EMAIL__USE_SSL}'
+      - 'AUTHENTIK_EMAIL__TIMEOUT=${AUTHENTIK_EMAIL__TIMEOUT}'
+      - 'AUTHENTIK_EMAIL__FROM=${AUTHENTIK_EMAIL__FROM}'
     volumes:
-      - authentik-media:/media
-      - authentik-templates:/templates
-    networks:
-      - coolify
+      - './media:/media'
+      - './custom-templates:/templates'
     depends_on:
       postgresql:
         condition: service_healthy
       redis:
         condition: service_healthy
-
   authentik-worker:
-    image: ghcr.io/goauthentik/server:2025.2.3
-    container_name: authentik-worker
+    image: 'ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.2.3}'
     restart: unless-stopped
     command: worker
-    user: root
-
     environment:
-      AUTHENTIK_POSTGRESQL__HOST: postgresql
-      AUTHENTIK_POSTGRESQL__USER: ${SERVICE_USER_POSTGRESQL}
-      AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DB:-authentik}
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${SERVICE_PASSWORD_POSTGRESQL}
-      AUTHENTIK_REDIS__HOST: redis
-      AUTHENTIK_SECRET_KEY: ${SERVICE_PASSWORD_64_AUTHENTIKSERVER}
-      AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-true}
-
+      - 'AUTHENTIK_REDIS__HOST=${REDIS_HOST:-redis}'
+      - 'AUTHENTIK_POSTGRESQL__HOST=${POSTGRES_HOST:-postgresql}'
+      - 'AUTHENTIK_POSTGRESQL__USER=${SERVICE_USER_POSTGRESQL}'
+      - 'AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB:-authentik}'
+      - 'AUTHENTIK_POSTGRESQL__PASSWORD=${SERVICE_PASSWORD_POSTGRESQL}'
+      - 'AUTHENTIK_SECRET_KEY=${SERVICE_PASSWORD_64_AUTHENTIKSERVER}'
+      - 'AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING__ENABLED}'
+      - 'AUTHENTIK_EMAIL__HOST=${AUTHENTIK_EMAIL__HOST}'
+      - 'AUTHENTIK_EMAIL__PORT=${AUTHENTIK_EMAIL__PORT}'
+      - 'AUTHENTIK_EMAIL__USERNAME=${AUTHENTIK_EMAIL__USERNAME}'
+      - 'AUTHENTIK_EMAIL__PASSWORD=${AUTHENTIK_EMAIL__PASSWORD}'
+      - 'AUTHENTIK_EMAIL__USE_TLS=${AUTHENTIK_EMAIL__USE_TLS}'
+      - 'AUTHENTIK_EMAIL__USE_SSL=${AUTHENTIK_EMAIL__USE_SSL}'
+      - 'AUTHENTIK_EMAIL__TIMEOUT=${AUTHENTIK_EMAIL__TIMEOUT}'
+      - 'AUTHENTIK_EMAIL__FROM=${AUTHENTIK_EMAIL__FROM}'
+    user: root
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - authentik-media:/media
-      - authentik-templates:/templates
-      - authentik-certs:/certs
-    networks:
-      - coolify
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - './media:/media'
+      - './certs:/certs'
+      - './custom-templates:/templates'
     depends_on:
       postgresql:
         condition: service_healthy
       redis:
         condition: service_healthy
-    labels:
-      coolify.managed: "true"
-      # Füge diese Labels hinzu um den Port-Fehler zu vermeiden
-      traefik.enable: "false"
-
   postgresql:
-    image: postgres:16-alpine
-    container_name: authentik-postgresql
+    image: 'postgres:16-alpine'
     restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}'
+      interval: 2s
+      timeout: 10s
+      retries: 15
+    volumes:
+      - 'authentik-db:/var/lib/postgresql/data'
     environment:
-      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRESQL}
-      POSTGRES_USER: ${SERVICE_USER_POSTGRESQL}
-      POSTGRES_DB: ${POSTGRES_DB:-authentik}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-    volumes:
-      - authentik-db:/var/lib/postgresql/data
-    networks:
-      - coolify
-    labels:
-      coolify.managed: "true"
-
+      - 'POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRESQL}'
+      - 'POSTGRES_USER=${SERVICE_USER_POSTGRESQL}'
+      - POSTGRES_DB=authentik
   redis:
-    image: redis:alpine
-    container_name: authentik-redis
-    command: "--save 60 1 --loglevel warning"
+    image: 'redis:alpine'
+    command: '--save 60 1 --loglevel warning'
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 5s
+      test:
+        - CMD-SHELL
+        - 'redis-cli ping | grep PONG'
+      interval: 2s
       timeout: 10s
-      retries: 10
+      retries: 15
     volumes:
-      - redis-data:/data
-    networks:
-      - coolify
-    labels:
-      coolify.managed: "true"
-
-volumes:
-  authentik-db:
-  redis-data:
-  authentik-media:
-  authentik-templates:
-  authentik-certs:
+      - 'redis:/data'
