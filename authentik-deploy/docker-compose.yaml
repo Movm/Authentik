@@ -20,6 +20,12 @@ services:
       - 'AUTHENTIK_EMAIL__USE_SSL=${AUTHENTIK_EMAIL__USE_SSL}'
       - 'AUTHENTIK_EMAIL__TIMEOUT=${AUTHENTIK_EMAIL__TIMEOUT}'
       - 'AUTHENTIK_EMAIL__FROM=${AUTHENTIK_EMAIL__FROM}'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.authentik-server.loadbalancer.server.port=9000"
+      - "traefik.http.routers.authentik-server.rule=Host(`${SERVICE_FQDN_AUTHENTIKSERVER_9000}`)"
+      - "traefik.http.routers.authentik-server.entrypoints=http"
+      - "coolify.managed=true"
     volumes:
       - './media:/media'
       - './custom-templates:/templates'
@@ -49,6 +55,8 @@ services:
       - 'AUTHENTIK_EMAIL__USE_SSL=${AUTHENTIK_EMAIL__USE_SSL}'
       - 'AUTHENTIK_EMAIL__TIMEOUT=${AUTHENTIK_EMAIL__TIMEOUT}'
       - 'AUTHENTIK_EMAIL__FROM=${AUTHENTIK_EMAIL__FROM}'
+    labels:
+      - "coolify.managed=true"
     user: root
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
@@ -71,6 +79,8 @@ services:
       interval: 2s
       timeout: 10s
       retries: 15
+    labels:
+      - "coolify.managed=true"
     volumes:
       - 'authentik-db:/var/lib/postgresql/data'
     environment:
@@ -89,6 +99,8 @@ services:
       interval: 2s
       timeout: 10s
       retries: 15
+    labels:
+      - "coolify.managed=true"
     volumes:
       - 'redis:/data'
 
