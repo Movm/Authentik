@@ -20,8 +20,8 @@ services:
       - 'AUTHENTIK_EMAIL__USE_SSL=${AUTHENTIK_EMAIL__USE_SSL}'
       - 'AUTHENTIK_EMAIL__TIMEOUT=${AUTHENTIK_EMAIL__TIMEOUT}'
       - 'AUTHENTIK_EMAIL__FROM=${AUTHENTIK_EMAIL__FROM}'
-    expose:
-      - "9000"
+    ports:
+      - "9000:9000"
     labels:
       - traefik.enable=true
       - traefik.http.routers.authentik.rule=Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)
