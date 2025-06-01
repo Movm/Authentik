@@ -19,7 +19,7 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${SERVICE_PASSWORD_POSTGRESQL}
       AUTHENTIK_REDIS__HOST: redis
       AUTHENTIK_SECRET_KEY: ${SERVICE_PASSWORD_64_AUTHENTIKSERVER}
-      # Wichtig: Korrigierte FQDN ohne https://
+      # Wichtig: FQDN ohne https://
       SERVICE_FQDN_AUTHENTIKSERVER_9000: fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de
       AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-true}
       AUTHENTIK_EMAIL__HOST: ${AUTHENTIK_EMAIL__HOST}
@@ -36,14 +36,14 @@ services:
       traefik.enable: "true"
       traefik.docker.network: "coolify"
       
-      # HTTP Router (für Redirect)
+      # HTTP Router (für Redirect) - KORRIGIERT: http statt web
       traefik.http.routers.authentik-http.rule: "Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)"
-      traefik.http.routers.authentik-http.entrypoints: "web"
+      traefik.http.routers.authentik-http.entrypoints: "http"
       traefik.http.routers.authentik-http.middlewares: "authentik-redirect"
       
-      # HTTPS Router
+      # HTTPS Router - KORRIGIERT: https statt websecure
       traefik.http.routers.authentik-https.rule: "Host(`fs80w0ocwswgcs88ck0sccgw.services.moritz-waechter.de`)"
-      traefik.http.routers.authentik-https.entrypoints: "websecure"
+      traefik.http.routers.authentik-https.entrypoints: "https"
       traefik.http.routers.authentik-https.tls: "true"
       traefik.http.routers.authentik-https.tls.certresolver: "letsencrypt"
       
@@ -54,7 +54,7 @@ services:
       traefik.http.middlewares.authentik-redirect.redirectscheme.scheme: "https"
       traefik.http.middlewares.authentik-redirect.redirectscheme.permanent: "true"
       
-      # Coolify Label
+      # Coolify Labels
       coolify.managed: "true"
 
     volumes:
@@ -98,6 +98,8 @@ services:
         condition: service_healthy
     labels:
       coolify.managed: "true"
+      # Füge diese Labels hinzu um den Port-Fehler zu vermeiden
+      traefik.enable: "false"
 
   postgresql:
     image: postgres:16-alpine
