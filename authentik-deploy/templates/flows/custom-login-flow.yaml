@@ -1,0 +1,13 @@
+# Custom Login Flow Template
+# This is a placeholder for custom login flow configurations
+version: 1
+metadata:
+  name: custom-login-flow
+entries:
+  - model: authentik_flows.flow
+    identifiers:
+      slug: custom-login
+    attrs:
+      name: Custom Login Flow
+      title: Sign in to your account
+      designation: authentication 
