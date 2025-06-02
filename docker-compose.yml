@@ -1,13 +1,14 @@
+version: "3.8"
+
 services:
   postgresql:
     image: postgres:16-alpine
     restart: unless-stopped
-    volumes:
-      - database:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: ${PG_PASS}
       POSTGRES_USER: ${PG_USER}
       POSTGRES_DB: ${PG_DB}
+    volumes: [database:/var/lib/postgresql/data]
 
   redis:
     image: redis:alpine
@@ -16,6 +17,7 @@ services:
     volumes: [redis:/data]
 
   server:
+    &ref_server_environment
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.4.1}
     command: server
     environment:
@@ -25,22 +27,20 @@ services:
       AUTHENTIK_POSTGRESQL__USER: ${PG_USER}
       AUTHENTIK_POSTGRESQL__NAME: ${PG_DB}
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
-      # einmalig für Erst-Setup ↓
       AUTHENTIK_BOOTSTRAP_EMAIL: ${AK_BOOT_EMAIL}
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AK_BOOT_PASS}
-    volumes: ["media:/media"]
-    ports:
-      - "9000:9000"
-      - "9443:9443"
+    volumes: [media:/media]
+    ports: ["9000:9000", "9443:9443"]
     depends_on:
-      postgresql: { condition: service_healthy }
-      redis:      { condition: service_healthy }
+      postgresql: {condition: service_healthy}
+      redis:      {condition: service_healthy}
 
   worker:
-    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.4.1}
+    <<: *ref_server_environment
     command: worker
-    environment: *ref_server_environment
-    volumes: ["media:/media"]
+    depends_on:
+      postgresql: {condition: service_healthy}
+      redis:      {condition: service_healthy}
 
 volumes:
   database: {}
