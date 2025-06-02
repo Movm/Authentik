@@ -1,9 +1,9 @@
 # Authentik Environment Configuration für Coolify
 # Diese Konfiguration in eine .env Datei kopieren oder in Coolify unter Environment Variables eintragen
 
-# AUTHENTIK Bootstrap - Initial Admin Setup
-AUTHENTIK_BOOTSTRAP_EMAIL=admin@moritz-waechter.de
-AUTHENTIK_BOOTSTRAP_PASSWORD=SicheresTestPasswort123!
+# AUTHENTIK Bootstrap - Initial Admin Setup (angepasst an docker-compose.yml)
+AK_BOOT_EMAIL=admin@moritz-waechter.de
+AK_BOOT_PASS=SicheresTestPasswort123!
 
 # PostgreSQL Datenbank Konfiguration  
 PG_USER=authentik
@@ -34,6 +34,7 @@ AUTHENTIK_EMAIL__FROM=admin@moritz-waechter.de
 # 1. Diese Variablen in Coolify unter "Environment Variables" eintragen
 # 2. Oder lokal: cp authentik-config.txt .env (dann die erste Zeile entfernen)
 # 3. Service läuft auf Port 9000 (HTTP) und 9443 (HTTPS)
-# 4. Bootstrap-Email/-Passwort setzt initiales Admin-Konto (Username: akadmin)
+# 4. Bootstrap-Variablen: AK_BOOT_EMAIL/AK_BOOT_PASS für initiales Admin-Konto (Username: akadmin)
 # 5. Nach erfolgreichem ersten Start können Bootstrap-Variablen entfernt werden
-# 6. Secret Key ist bereits sicher generiert und kann direkt verwendet werden 
+# 6. Secret Key ist bereits sicher generiert und kann direkt verwendet werden
+# 7. docker-compose.yml ist jetzt im Root-Verzeichnis 
