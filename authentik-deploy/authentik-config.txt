@@ -1,0 +1,39 @@
+# Authentik Environment Configuration für Coolify
+# Diese Konfiguration in eine .env Datei kopieren oder in Coolify unter Environment Variables eintragen
+
+# AUTHENTIK Bootstrap - Initial Admin Setup
+AUTHENTIK_BOOTSTRAP_EMAIL=admin@moritz-waechter.de
+AUTHENTIK_BOOTSTRAP_PASSWORD=SicheresTestPasswort123!
+
+# PostgreSQL Datenbank Konfiguration  
+PG_USER=authentik
+PG_PASS=irgendeinStarkesPasswort
+PG_DB=authentik
+
+# Authentik Secret Key (sicher generiert mit openssl rand -base64 64)
+AUTHENTIK_SECRET_KEY=q3tLxvEKHx0fxVQyiiQ/j3lJYST0F31//EHaF9f6FCXMlZ83Zf+iePu57KDEAMde rErIhIIK/G8sc/tzvDnVWg==
+
+# Authentik Version
+AUTHENTIK_TAG=2025.4.1
+
+# Ports für Docker Compose (optional - nur bei lokalem Test nötig)
+COMPOSE_PORT_HTTP=9000
+COMPOSE_PORT_HTTPS=9443
+
+# Error Reporting
+AUTHENTIK_ERROR_REPORTING__ENABLED=false
+
+# Email Konfiguration (optional - kann später konfiguriert werden)
+AUTHENTIK_EMAIL__HOST=localhost
+AUTHENTIK_EMAIL__PORT=25
+AUTHENTIK_EMAIL__USE_TLS=false
+AUTHENTIK_EMAIL__USE_SSL=false
+AUTHENTIK_EMAIL__FROM=admin@moritz-waechter.de
+
+# ANWEISUNGEN FÜR COOLIFY:
+# 1. Diese Variablen in Coolify unter "Environment Variables" eintragen
+# 2. Oder lokal: cp authentik-config.txt .env (dann die erste Zeile entfernen)
+# 3. Service läuft auf Port 9000 (HTTP) und 9443 (HTTPS)
+# 4. Bootstrap-Email/-Passwort setzt initiales Admin-Konto (Username: akadmin)
+# 5. Nach erfolgreichem ersten Start können Bootstrap-Variablen entfernt werden
+# 6. Secret Key ist bereits sicher generiert und kann direkt verwendet werden 
