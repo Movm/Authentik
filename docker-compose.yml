@@ -44,7 +44,7 @@ services:
       exec /entrypoint.sh server
       "
     environment:
-      GITHUB_REPO: ${GITHUB_REPO:-moritzwae/Authentik}
+      GITHUB_REPO: ${GITHUB_REPO:-Movm/Authentik}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_REDIS__HOST: redis
       AUTHENTIK_POSTGRESQL__HOST: postgresql
@@ -82,7 +82,7 @@ services:
       exec /entrypoint.sh worker
       "
     environment:
-      GITHUB_REPO: ${GITHUB_REPO:-moritzwae/Authentik}
+      GITHUB_REPO: ${GITHUB_REPO:-Movm/Authentik}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_REDIS__HOST: redis
       AUTHENTIK_POSTGRESQL__HOST: postgresql
