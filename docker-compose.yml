@@ -3,12 +3,14 @@ version: "3.8"
 services:
   blueprint-sync:
     image: curlimages/curl:8.8.0
+    # hier: $$f statt $f  ─► Compose lässt das $ unberührt,
+    #                     die Shell sieht es als Variable f
     command: >
       sh -euxc '
         mkdir -p /blueprints/custom
         for f in 01-property-mappings 02-flows 03-policies 04-application-provider; do
-          curl -fsSL -o /blueprints/custom/$f.yaml \
-               https://raw.githubusercontent.com/Movm/Authentik/main/blueprints/custom/$f.yaml;
+          curl -fsSL -o /blueprints/custom/$$f.yaml \
+               https://raw.githubusercontent.com/Movm/Authentik/main/blueprints/custom/$$f.yaml;
         done
       '
     volumes:
