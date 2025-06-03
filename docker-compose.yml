@@ -1,20 +1,6 @@
 version: "3.8"
 
 services:
-  blueprint-sync:
-    image: curlimages/curl:8.8.0          # läuft als root, kann also schreiben
-    command: >
-      sh -euxc '
-        mkdir -p /blueprints/custom
-        for f in 01-property-mappings 02-flows 03-policies 04-application-provider; do
-          curl -fsSL "https://raw.githubusercontent.com/Movm/Authentik/main/blueprints/custom/$${f}.yaml" \
-               -o "/blueprints/custom/$${f}.yaml";
-        done
-      '
-    volumes:
-      - blueprints-custom:/blueprints/custom
-    restart: "no"
-
   postgresql:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -57,7 +43,7 @@ services:
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
     volumes: 
       - media:/media
-      - blueprints-custom:/blueprints/custom
+      - ./blueprints/custom:/blueprints/custom
       - ./branding:/web/dist/custom
       - ./templates:/templates
     labels:
@@ -66,8 +52,6 @@ services:
       - traefik.http.routers.authentik.entrypoints=websecure
       - traefik.http.services.authentik.loadbalancer.server.port=9000
     depends_on:
-      blueprint-sync:
-        condition: service_completed_successfully
       postgresql: {condition: service_healthy}
       redis:      {condition: service_healthy}
 
@@ -86,12 +70,10 @@ services:
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
     volumes: 
       - media:/media
-      - blueprints-custom:/blueprints/custom
+      - ./blueprints/custom:/blueprints/custom
       - ./branding:/web/dist/custom
       - ./templates:/templates
     depends_on:
-      blueprint-sync:
-        condition: service_completed_successfully
       postgresql: {condition: service_healthy}
       redis:      {condition: service_healthy}
 
@@ -99,4 +81,3 @@ volumes:
   database: {}
   redis: {}
   media: {}
-  blueprints-custom: {}
