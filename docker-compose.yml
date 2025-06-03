@@ -41,7 +41,11 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
       AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL}
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
-    volumes: [media:/media]
+    volumes: 
+      - media:/media
+      - ./blueprints:/blueprints
+      - ./branding:/web/dist/custom
+      - ./templates:/templates
     labels:
       - traefik.enable=true
       - traefik.http.routers.authentik.rule=Host(`auth.services.moritz-waechter.de`)
@@ -64,7 +68,11 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
       AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL}
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
-    volumes: [media:/media]
+    volumes: 
+      - media:/media
+      - ./blueprints:/blueprints
+      - ./branding:/web/dist/custom
+      - ./templates:/templates
     depends_on:
       postgresql: {condition: service_healthy}
       redis:      {condition: service_healthy}

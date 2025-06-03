@@ -22,3 +22,6 @@ logs/
 # Temporary files
 *.tmp
 *.temp 
+
+# docs
+docs/
