@@ -1,6 +1,23 @@
 version: "3.8"
 
 services:
+  blueprint-sync:
+    image: curlimages/curl:8.8.0  # winziges Image mit curl und Zertifikaten
+    command: >
+      sh -c '
+        set -eu
+        mkdir -p /blueprints/custom &&
+        for f in 01-property-mappings 02-flows 03-policies 04-application-provider; do
+          curl -fsSL -o /blueprints/custom/${f}.yaml \
+            https://raw.githubusercontent.com/Movm/Authentik/main/blueprints/custom/${f}.yaml;
+        done &&
+        echo "Blueprints synced successfully" &&
+        ls -la /blueprints/custom
+      '
+    volumes:
+      - blueprints-custom:/blueprints/custom
+    restart: "no"
+
   postgresql:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -52,6 +69,8 @@ services:
       - traefik.http.routers.authentik.entrypoints=websecure
       - traefik.http.services.authentik.loadbalancer.server.port=9000
     depends_on:
+      blueprint-sync:
+        condition: service_completed_successfully
       postgresql: {condition: service_healthy}
       redis:      {condition: service_healthy}
 
@@ -74,6 +93,8 @@ services:
       - ./branding:/web/dist/custom
       - ./templates:/templates
     depends_on:
+      blueprint-sync:
+        condition: service_completed_successfully
       postgresql: {condition: service_healthy}
       redis:      {condition: service_healthy}
 
