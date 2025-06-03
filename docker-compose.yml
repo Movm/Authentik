@@ -42,7 +42,11 @@ services:
       AUTHENTIK_BOOTSTRAP_EMAIL: ${AK_BOOT_EMAIL}
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AK_BOOT_PASS}
     volumes: [media:/media]
-    ports: ["9000:9000", "9443:9443"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.authentik.rule=Host(`auth.services.moritz-waechter.de`)
+      - traefik.http.routers.authentik.entrypoints=websecure
+      - traefik.http.services.authentik.loadbalancer.server.port=9000
     depends_on:
       postgresql: {condition: service_healthy}
       redis:      {condition: service_healthy}
@@ -64,17 +68,6 @@ services:
     depends_on:
       postgresql: {condition: service_healthy}
       redis:      {condition: service_healthy}
-
-  authentik:
-    image: ghcr.io/goauthentik/server:2025.4.1
-    ports:
-      - 9000:9000
-      - 9443:9443
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.authentik.rule=Host(`auth.services.moritz-waechter.de`)
-      - traefik.http.routers.authentik.entrypoints=websecure
-      - traefik.http.services.authentik.loadbalancer.server.port=9000
 
 volumes:
   database: {}
