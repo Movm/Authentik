@@ -1,0 +1,331 @@
+version: 1
+metadata:
+  name: Grünerator Flows
+entries:
+# ==== AUTHENTICATION FLOW ====
+- identifiers:
+    slug: gruenerator-login-flow
+  model: authentik_flows.flow
+  attrs:
+    name: gruenerator-login-flow
+    title: Grünerator Login
+    slug: gruenerator-login-flow
+    designation: authentication
+    layout: stacked
+
+# ==== ENROLLMENT FLOW ====
+- identifiers:
+    slug: gruenerator-registration-flow
+  model: authentik_flows.flow
+  attrs:
+    name: gruenerator-registration-flow
+    title: Grünerator Registrierung
+    slug: gruenerator-registration-flow
+    designation: enrollment
+    layout: stacked
+
+# ==== UNENROLLMENT FLOW ====
+- identifiers:
+    slug: gruenerator-unenrollment-flow
+  model: authentik_flows.flow
+  attrs:
+    name: gruenerator-unenrollment-flow
+    title: Grünerator Account Löschen
+    slug: gruenerator-unenrollment-flow
+    designation: unenrollment
+    layout: stacked
+
+# ==== STAGES ====
+
+# Identification Stage
+- identifiers:
+    name: gruenerator-identification-stage
+  model: authentik_stages_identification.identificationstage
+  attrs:
+    name: gruenerator-identification-stage
+    user_fields:
+      - username
+      - email
+    password_stage: !KeyOf gruenerator-password-stage
+    enrollment_flow: !KeyOf gruenerator-registration-flow
+    recovery_flow: null
+    passwordless_flow: null
+    sources:
+      - !KeyOf gruenerator-login-source
+
+# Password Stage
+- identifiers:
+    name: gruenerator-password-stage
+  model: authentik_stages_password.passwordstage
+  attrs:
+    name: gruenerator-password-stage
+    backends:
+      - authentik.core.auth.InbuiltBackend
+      - authentik.sources.ldap.auth.LDAPBackend
+    configure_flow: null
+    failed_attempts_before_cancel: 5
+
+# User Login Stage
+- identifiers:
+    name: gruenerator-login-stage
+  model: authentik_stages_user_login.userloginstage
+  attrs:
+    name: gruenerator-login-stage
+    session_duration: P0Y0M30DT0H0M0S
+    terminate_other_sessions: false
+    remember_me_offset: P0Y0M30DT0H0M0S
+
+# User Write Stage
+- identifiers:
+    name: gruenerator-user-write-stage
+  model: authentik_stages_user_write.userwritestage
+  attrs:
+    name: gruenerator-user-write-stage
+    create_users_as_inactive: false
+    create_users_group: null
+    user_creation_mode: always_create
+    user_type: internal
+    user_path_template: goauthentik.io/sources/gruenerator-login
+
+# Prompt Stage for Registration
+- identifiers:
+    name: gruenerator-registration-prompt-stage
+  model: authentik_stages_prompt.promptstage
+  attrs:
+    name: gruenerator-registration-prompt-stage
+    fields:
+      - !KeyOf gruenerator-prompt-email
+      - !KeyOf gruenerator-prompt-name
+      - !KeyOf gruenerator-prompt-password
+      - !KeyOf gruenerator-prompt-password-repeat
+    validation_policies: []
+
+# Email Verification Stage
+- identifiers:
+    name: gruenerator-email-stage
+  model: authentik_stages_email.emailstage
+  attrs:
+    name: gruenerator-email-stage
+    use_global_settings: true
+    host: localhost
+    port: 25
+    username: ""
+    password: ""
+    use_tls: false
+    use_ssl: false
+    timeout: 10
+    from_address: admin@moritz-waechter.de
+    token_expiry: 30
+    subject: Grünerator - E-Mail Bestätigung
+    template: email/account_confirmation.html
+    activate_user_on_success: true
+
+# User Delete Stage (for unenrollment)
+- identifiers:
+    name: gruenerator-user-delete-stage
+  model: authentik_stages_user_delete.userdeletestage
+  attrs:
+    name: gruenerator-user-delete-stage
+
+# Password Confirmation Stage (for unenrollment)
+- identifiers:
+    name: gruenerator-password-confirm-stage
+  model: authentik_stages_password.passwordstage
+  attrs:
+    name: gruenerator-password-confirm-stage
+    backends:
+      - authentik.core.auth.InbuiltBackend
+    configure_flow: null
+    failed_attempts_before_cancel: 3
+
+# ==== PROMPTS ====
+
+# Email Prompt
+- identifiers:
+    field_key: email
+  model: authentik_stages_prompt.prompt
+  attrs:
+    field_key: email
+    label: E-Mail
+    type: email
+    required: true
+    placeholder: ihre@email.de
+    order: 100
+
+# Name Prompt
+- identifiers:
+    field_key: name
+  model: authentik_stages_prompt.prompt
+  attrs:
+    field_key: name
+    label: Vollständiger Name
+    type: text
+    required: true
+    placeholder: Max Mustermann
+    order: 200
+
+# Password Prompt
+- identifiers:
+    field_key: password
+  model: authentik_stages_prompt.prompt
+  attrs:
+    field_key: password
+    label: Passwort
+    type: password
+    required: true
+    placeholder: Passwort eingeben
+    order: 300
+
+# Password Repeat Prompt
+- identifiers:
+    field_key: password_repeat
+  model: authentik_stages_prompt.prompt
+  attrs:
+    field_key: password_repeat
+    label: Passwort wiederholen
+    type: password
+    required: true
+    placeholder: Passwort wiederholen
+    order: 400
+
+# ==== STAGE BINDINGS ====
+
+# Authentication Flow Bindings
+- identifiers:
+    target: !KeyOf gruenerator-login-flow
+    stage: !KeyOf gruenerator-identification-stage
+    order: 10
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-login-flow
+    stage: !KeyOf gruenerator-identification-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 10
+    policy_engine_mode: any
+
+- identifiers:
+    target: !KeyOf gruenerator-login-flow
+    stage: !KeyOf gruenerator-password-stage
+    order: 20
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-login-flow
+    stage: !KeyOf gruenerator-password-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 20
+    policy_engine_mode: any
+
+- identifiers:
+    target: !KeyOf gruenerator-login-flow
+    stage: !KeyOf gruenerator-login-stage
+    order: 30
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-login-flow
+    stage: !KeyOf gruenerator-login-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 30
+    policy_engine_mode: any
+
+# Enrollment Flow Bindings
+- identifiers:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-registration-prompt-stage
+    order: 10
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-registration-prompt-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 10
+    policy_engine_mode: any
+
+- identifiers:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-user-write-stage
+    order: 20
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-user-write-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 20
+    policy_engine_mode: any
+
+- identifiers:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-email-stage
+    order: 30
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-email-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 30
+    policy_engine_mode: any
+
+- identifiers:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-login-stage
+    order: 40
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-registration-flow
+    stage: !KeyOf gruenerator-login-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 40
+    policy_engine_mode: any
+
+# Unenrollment Flow Bindings
+- identifiers:
+    target: !KeyOf gruenerator-unenrollment-flow
+    stage: !KeyOf gruenerator-password-confirm-stage
+    order: 10
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-unenrollment-flow
+    stage: !KeyOf gruenerator-password-confirm-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 10
+    policy_engine_mode: any
+
+- identifiers:
+    target: !KeyOf gruenerator-unenrollment-flow
+    stage: !KeyOf gruenerator-user-delete-stage
+    order: 20
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-unenrollment-flow
+    stage: !KeyOf gruenerator-user-delete-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 20
+    policy_engine_mode: any
+
+# ==== SOURCE ====
+- identifiers:
+    slug: gruenerator-login-source
+  model: authentik_sources_oauth.oauthsource
+  attrs:
+    name: Grünerator Login
+    slug: gruenerator-login-source
+    enabled: true
+    authentication_flow: !KeyOf gruenerator-login-flow
+    enrollment_flow: !KeyOf gruenerator-registration-flow
+    user_matching_mode: identifier
+    user_path_template: goauthentik.io/sources/gruenerator-login
+    provider_type: openidconnect
+    request_token_url: ""
+    authorization_url: ""
+    access_token_url: ""
+    profile_url: ""
+    consumer_key: ""
+    consumer_secret: "" 

@@ -1,0 +1,180 @@
+version: 1
+metadata:
+  name: Grünerator Policies
+entries:
+# ==== PASSWORD POLICY ====
+- identifiers:
+    name: gruenerator-password-policy
+  model: authentik_policies_password.passwordpolicy
+  attrs:
+    name: gruenerator-password-policy
+    password_field: password
+    amount_digits: 1
+    amount_uppercase: 1
+    amount_lowercase: 1
+    amount_symbols: 1
+    length_min: 8
+    symbol_charset: "!@#$%^&*"
+    error_message: "Passwort muss mindestens 8 Zeichen lang sein und eine Ziffer, einen Großbuchstaben, einen Kleinbuchstaben und ein Sonderzeichen (!@#$%^&*) enthalten."
+    check_static_rules: true
+    check_have_i_been_pwned: true
+    check_zxcvbn: true
+    hibp_allowed_count: 0
+    zxcvbn_score_threshold: 3
+
+# ==== EXPRESSION POLICIES ====
+
+# Policy für User-Pfad Zuordnung zu gruenerator-login
+- identifiers:
+    name: gruenerator-user-path-policy
+  model: authentik_policies_expression.expressionpolicy
+  attrs:
+    name: gruenerator-user-path-policy
+    expression: |
+      # Stelle sicher, dass neue Benutzer dem gruenerator-login Pfad zugeordnet werden
+      if ak_is_source_enabled("gruenerator-login-source"):
+          ak_message("Benutzer wird der Grünerator-Quelle zugeordnet")
+          return True
+      else:
+          ak_message("Grünerator-Quelle ist nicht verfügbar")
+          return False
+
+# Policy für Gruenerator-spezifische Validierung
+- identifiers:
+    name: gruenerator-source-validation-policy
+  model: authentik_policies_expression.expressionpolicy
+  attrs:
+    name: gruenerator-source-validation-policy
+    expression: |
+      # Überprüfe, ob der Benutzer von der gruenerator-login Quelle kommt
+      if request.user.pk:
+          user_sources = [source.slug for source in request.user.sources.all()]
+          if "gruenerator-login-source" in user_sources:
+              return True
+          else:
+              ak_message("Benutzer ist nicht über die Grünerator-Quelle registriert")
+              return False
+      # Für neue Registrierungen erlauben
+      return True
+
+# Policy für Email-Domänen-Validierung (optional)
+- identifiers:
+    name: gruenerator-email-domain-policy
+  model: authentik_policies_expression.expressionpolicy
+  attrs:
+    name: gruenerator-email-domain-policy
+    expression: |
+      # Optional: Beschränke auf bestimmte Email-Domänen
+      email = request.context.get('prompt_data', {}).get('email', '')
+      if not email:
+          email = getattr(request.user, 'email', '')
+      
+      # Erlaubte Domänen (anpassen nach Bedarf)
+      allowed_domains = [
+          'gmail.com',
+          'outlook.com', 
+          'hotmail.com',
+          'yahoo.com',
+          'web.de',
+          'gmx.de',
+          'moritz-waechter.de'
+      ]
+      
+      if email:
+          domain = email.split('@')[1].lower() if '@' in email else ''
+          if domain in allowed_domains:
+              return True
+          else:
+              ak_message(f"Email-Domäne '{domain}' ist nicht erlaubt")
+              return False
+      
+      return True
+
+# Policy für Passwort-Wiederholung-Validierung
+- identifiers:
+    name: gruenerator-password-repeat-policy
+  model: authentik_policies_expression.expressionpolicy
+  attrs:
+    name: gruenerator-password-repeat-policy
+    expression: |
+      # Überprüfe, ob Passwort und Passwort-Wiederholung übereinstimmen
+      prompt_data = request.context.get('prompt_data', {})
+      password = prompt_data.get('password', '')
+      password_repeat = prompt_data.get('password_repeat', '')
+      
+      if password and password_repeat:
+          if password == password_repeat:
+              return True
+          else:
+              ak_message("Passwörter stimmen nicht überein")
+              return False
+      
+      # Wenn keine Passwort-Daten vorhanden, trotzdem erlauben (andere Stages validieren)
+      return True
+
+# ==== POLICY BINDINGS ====
+
+# Bind Password Policy to Registration Prompt Stage
+- identifiers:
+    target: !KeyOf gruenerator-registration-prompt-stage
+    policy: !KeyOf gruenerator-password-policy
+    order: 10
+  model: authentik_policies.policybinding
+  attrs:
+    target: !KeyOf gruenerator-registration-prompt-stage
+    policy: !KeyOf gruenerator-password-policy
+    enabled: true
+    order: 10
+    timeout: 30
+
+# Bind Password Repeat Policy to Registration Prompt Stage
+- identifiers:
+    target: !KeyOf gruenerator-registration-prompt-stage
+    policy: !KeyOf gruenerator-password-repeat-policy
+    order: 20
+  model: authentik_policies.policybinding
+  attrs:
+    target: !KeyOf gruenerator-registration-prompt-stage
+    policy: !KeyOf gruenerator-password-repeat-policy
+    enabled: true
+    order: 20
+    timeout: 30
+
+# Bind Email Domain Policy to Registration Prompt Stage (optional)
+- identifiers:
+    target: !KeyOf gruenerator-registration-prompt-stage
+    policy: !KeyOf gruenerator-email-domain-policy
+    order: 30
+  model: authentik_policies.policybinding
+  attrs:
+    target: !KeyOf gruenerator-registration-prompt-stage
+    policy: !KeyOf gruenerator-email-domain-policy
+    enabled: true
+    order: 30
+    timeout: 30
+
+# Bind Source Validation Policy to User Write Stage
+- identifiers:
+    target: !KeyOf gruenerator-user-write-stage
+    policy: !KeyOf gruenerator-source-validation-policy
+    order: 10
+  model: authentik_policies.policybinding
+  attrs:
+    target: !KeyOf gruenerator-user-write-stage
+    policy: !KeyOf gruenerator-source-validation-policy
+    enabled: true
+    order: 10
+    timeout: 30
+
+# Bind User Path Policy to User Write Stage
+- identifiers:
+    target: !KeyOf gruenerator-user-write-stage
+    policy: !KeyOf gruenerator-user-path-policy
+    order: 20
+  model: authentik_policies.policybinding
+  attrs:
+    target: !KeyOf gruenerator-user-write-stage
+    policy: !KeyOf gruenerator-user-path-policy
+    enabled: true
+    order: 20
+    timeout: 30 

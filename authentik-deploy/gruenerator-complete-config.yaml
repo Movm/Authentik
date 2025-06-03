@@ -1,0 +1,206 @@
+version: 1
+metadata:
+  name: Grünerator Complete Configuration
+entries:
+# ==== OAUTH2/OPENID PROVIDER ====
+- identifiers:
+    name: gruenerator-provider
+  model: authentik_providers_oauth2.oauth2provider
+  attrs:
+    name: gruenerator-provider
+    client_type: confidential
+    client_id: gruenerator_oidc_client
+    authorization_flow: !KeyOf gruenerator-login-flow
+    property_mappings:
+      - !KeyOf gruenerator-openid-scope
+      - !KeyOf gruenerator-profile-scope
+      - !KeyOf gruenerator-email-scope
+      - !KeyOf gruenerator-offline-access-scope
+      - !KeyOf gruenerator-groups-mapping
+      - !KeyOf gruenerator-user-attributes-mapping
+      - !KeyOf gruenerator-permissions-mapping
+    redirect_uris: |
+      https://[deine-domain]/api/auth/callback
+      http://localhost:3000/api/auth/callback
+      http://localhost:3001/api/auth/callback
+    sub_mode: hashed_user_id
+    include_claims_in_id_token: true
+    issuer_mode: per_provider
+    signing_key: !Find [authentik_crypto.certificatekeypair, ["name", "authentik Self-signed Certificate"]]
+
+# ==== APPLICATION ====
+- identifiers:
+    slug: gruenerator
+  model: authentik_core.application
+  attrs:
+    name: gruenerator
+    slug: gruenerator
+    provider: !KeyOf gruenerator-provider
+    meta_launch_url: https://[deine-domain]
+    meta_description: Grünerator - AI-Powered Content Generation Platform
+    meta_publisher: Moritz Wächter
+    policy_engine_mode: any
+    open_in_new_tab: true
+
+# ==== GROUPS FOR GRUENERATOR ====
+- identifiers:
+    name: Grünerator Users
+  model: authentik_core.group
+  attrs:
+    name: Grünerator Users
+    is_superuser: false
+    parent: null
+    attributes:
+      description: Standard Benutzergruppe für Grünerator
+      permissions:
+        - read
+        - write
+        - profile_edit
+
+- identifiers:
+    name: Grünerator Editors
+  model: authentik_core.group
+  attrs:
+    name: Grünerator Editors
+    is_superuser: false
+    parent: !KeyOf "Grünerator Users"
+    attributes:
+      description: Editor-Gruppe für erweiterte Grünerator-Funktionen
+      permissions:
+        - read
+        - write
+        - profile_edit
+        - content_edit
+        - moderate
+
+- identifiers:
+    name: Grünerator Admins
+  model: authentik_core.group
+  attrs:
+    name: Grünerator Admins
+    is_superuser: false
+    parent: !KeyOf "Grünerator Editors"
+    attributes:
+      description: Administrator-Gruppe für Grünerator-Verwaltung
+      permissions:
+        - read
+        - write
+        - profile_edit
+        - content_edit
+        - moderate
+        - admin
+        - manage_users
+        - manage_settings
+
+# ==== BUILT-IN SOURCE (CORRECTED) ====
+- identifiers:
+    slug: gruenerator-login-source
+  model: authentik_core.source
+  attrs:
+    name: Grünerator Login
+    slug: gruenerator-login-source
+    enabled: true
+    authentication_flow: !KeyOf gruenerator-login-flow
+    enrollment_flow: !KeyOf gruenerator-registration-flow
+    user_matching_mode: identifier
+    user_path_template: goauthentik.io/sources/gruenerator-login
+    policy_engine_mode: any
+
+# ==== APPLICATION GROUP ASSIGNMENT POLICIES ====
+- identifiers:
+    name: gruenerator-auto-group-assignment-policy
+  model: authentik_policies_expression.expressionpolicy
+  attrs:
+    name: gruenerator-auto-group-assignment-policy
+    expression: |
+      # Automatische Gruppenzuordnung für neue Grünerator-Benutzer
+      from authentik.core.models import Group
+      
+      try:
+          # Weise neue Benutzer automatisch der Standard-Gruppe zu
+          users_group = Group.objects.get(name="Grünerator Users")
+          if users_group not in request.user.ak_groups.all():
+              request.user.ak_groups.add(users_group)
+              ak_message(f"Benutzer {request.user.username} wurde der Gruppe 'Grünerator Users' zugewiesen")
+          
+          return True
+      except Group.DoesNotExist:
+          ak_message("Grünerator Users Gruppe nicht gefunden")
+          return True  # Trotzdem erlauben
+      except Exception as e:
+          ak_message(f"Fehler bei Gruppenzuordnung: {str(e)}")
+          return True  # Trotzdem erlauben
+
+# ==== BIND AUTO GROUP ASSIGNMENT TO USER WRITE STAGE ====
+- identifiers:
+    target: !KeyOf gruenerator-user-write-stage
+    policy: !KeyOf gruenerator-auto-group-assignment-policy
+    order: 50
+  model: authentik_policies.policybinding
+  attrs:
+    target: !KeyOf gruenerator-user-write-stage
+    policy: !KeyOf gruenerator-auto-group-assignment-policy
+    enabled: true
+    order: 50
+    timeout: 30
+
+# ==== INVALIDATION FLOW ====
+- identifiers:
+    slug: gruenerator-invalidation-flow
+  model: authentik_flows.flow
+  attrs:
+    name: gruenerator-invalidation-flow
+    title: Grünerator Logout
+    slug: gruenerator-invalidation-flow
+    designation: invalidation
+    layout: stacked
+
+# ==== USER LOGOUT STAGE ====
+- identifiers:
+    name: gruenerator-logout-stage
+  model: authentik_stages_user_logout.userlogoutstage
+  attrs:
+    name: gruenerator-logout-stage
+
+# ==== BIND LOGOUT STAGE TO INVALIDATION FLOW ====
+- identifiers:
+    target: !KeyOf gruenerator-invalidation-flow
+    stage: !KeyOf gruenerator-logout-stage
+    order: 10
+  model: authentik_flows.flowstagebinding
+  attrs:
+    target: !KeyOf gruenerator-invalidation-flow
+    stage: !KeyOf gruenerator-logout-stage
+    evaluate_on_plan: true
+    re_evaluate_policies: true
+    order: 10
+    policy_engine_mode: any
+
+# ==== UPDATE PROVIDER WITH INVALIDATION FLOW ====
+- identifiers:
+    name: gruenerator-provider
+  model: authentik_providers_oauth2.oauth2provider
+  attrs:
+    invalidation_flow: !KeyOf gruenerator-invalidation-flow
+
+# ==== BRAND CONFIGURATION (OPTIONAL) ====
+- identifiers:
+    domain: default
+  model: authentik_tenants.tenant
+  attrs:
+    domain: default
+    default: true
+    branding_title: Grünerator SSO
+    branding_logo: /static/dist/assets/icons/icon.png
+    branding_favicon: /static/dist/assets/icons/icon.png
+    flow_authentication: !KeyOf gruenerator-login-flow
+    flow_invalidation: !KeyOf gruenerator-invalidation-flow
+    flow_recovery: null
+    flow_unenrollment: !KeyOf gruenerator-unenrollment-flow
+    flow_user_settings: null
+    event_retention: P365D
+    web_certificate: null
+    attributes:
+      settings:
+        locale: de
+        theme: automatic 

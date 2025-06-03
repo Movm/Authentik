@@ -1,0 +1,181 @@
+version: 1
+metadata:
+  name: Grünerator Property Mappings
+entries:
+# ==== OIDC PROPERTY MAPPINGS ====
+
+# Standard Profile Scope Mapping für Grünerator
+- identifiers:
+    name: gruenerator-profile-scope
+  model: authentik_providers_oauth2.scopemapping
+  attrs:
+    name: gruenerator-profile-scope
+    scope_name: profile
+    description: "Grünerator Profile Scope - Benutzerprofilinformationen"
+    expression: |
+      return {
+          "name": request.user.name,
+          "preferred_username": request.user.username,
+          "nickname": request.user.username,
+          "given_name": request.user.name.split()[0] if request.user.name else request.user.username,
+          "family_name": " ".join(request.user.name.split()[1:]) if len(request.user.name.split()) > 1 else "",
+          "email": request.user.email,
+          "email_verified": request.user.email_verified if hasattr(request.user, 'email_verified') else True,
+          "groups": [group.name for group in request.user.ak_groups.all()],
+          "source": "gruenerator-login",
+          "user_path": "goauthentik.io/sources/gruenerator-login",
+          "locale": "de",
+          "zoneinfo": "Europe/Berlin"
+      }
+
+# Email Scope Mapping
+- identifiers:
+    name: gruenerator-email-scope
+  model: authentik_providers_oauth2.scopemapping
+  attrs:
+    name: gruenerator-email-scope
+    scope_name: email
+    description: "Grünerator Email Scope - E-Mail-Adresse und Verifizierungsstatus"
+    expression: |
+      return {
+          "email": request.user.email,
+          "email_verified": request.user.email_verified if hasattr(request.user, 'email_verified') else True,
+      }
+
+# OpenID Scope Mapping
+- identifiers:
+    name: gruenerator-openid-scope
+  model: authentik_providers_oauth2.scopemapping
+  attrs:
+    name: gruenerator-openid-scope
+    scope_name: openid
+    description: "Grünerator OpenID Scope - Grundlegende OpenID Connect Informationen"
+    expression: |
+      return {
+          "sub": str(request.user.pk),
+          "aud": [request.client.client_id] if hasattr(request, 'client') and request.client else [],
+          "iss": request.build_absolute_uri("/"),
+          "iat": int(time.time()),
+          "auth_time": int(request.user.last_login.timestamp()) if request.user.last_login else int(time.time()),
+      }
+
+# Offline Access Scope Mapping (für Refresh Tokens)
+- identifiers:
+    name: gruenerator-offline-access-scope
+  model: authentik_providers_oauth2.scopemapping
+  attrs:
+    name: gruenerator-offline-access-scope
+    scope_name: offline_access
+    description: "Grünerator Offline Access Scope - Ermöglicht Refresh Tokens"
+    expression: |
+      # Offline access scope normalerweise leer, ermöglicht aber Refresh Tokens
+      return {}
+
+# Custom Grünerator Groups Mapping
+- identifiers:
+    name: gruenerator-groups-mapping
+  model: authentik_providers_oauth2.propertymapping
+  attrs:
+    name: gruenerator-groups-mapping
+    description: "Grünerator Groups Mapping - Benutzergruppen und Rollen"
+    expression: |
+      # Erweiterte Gruppen-Informationen für Grünerator
+      user_groups = request.user.ak_groups.all()
+      
+      groups_info = []
+      for group in user_groups:
+          group_info = {
+              "name": group.name,
+              "pk": str(group.pk),
+              "is_superuser": group.is_superuser,
+              "attributes": group.attributes,
+          }
+          groups_info.append(group_info)
+      
+      return {
+          "groups": [group.name for group in user_groups],
+          "groups_detailed": groups_info,
+          "is_superuser": request.user.is_superuser,
+          "is_staff": request.user.is_staff,
+          "is_active": request.user.is_active,
+      }
+
+# Custom Grünerator User Attributes Mapping
+- identifiers:
+    name: gruenerator-user-attributes-mapping
+  model: authentik_providers_oauth2.propertymapping
+  attrs:
+    name: gruenerator-user-attributes-mapping
+    description: "Grünerator User Attributes - Erweiterte Benutzerattribute"
+    expression: |
+      # Benutzer-spezifische Attribute für Grünerator
+      user_attributes = request.user.attributes
+      
+      # Standard-Attribute hinzufügen wenn nicht vorhanden
+      default_attributes = {
+          "source": "gruenerator-login",
+          "registration_date": request.user.date_joined.isoformat() if request.user.date_joined else None,
+          "last_login": request.user.last_login.isoformat() if request.user.last_login else None,
+          "user_path": "goauthentik.io/sources/gruenerator-login",
+          "locale": "de",
+          "timezone": "Europe/Berlin",
+          "theme": "auto"
+      }
+      
+      # Merge user attributes with defaults
+      merged_attributes = {**default_attributes, **user_attributes}
+      
+      return {
+          "attributes": merged_attributes,
+          "user_uuid": str(request.user.uuid),
+          "user_type": request.user.type,
+          "date_joined": request.user.date_joined.isoformat() if request.user.date_joined else None,
+      }
+
+# Custom Grünerator Permissions Mapping  
+- identifiers:
+    name: gruenerator-permissions-mapping
+  model: authentik_providers_oauth2.propertymapping
+  attrs:
+    name: gruenerator-permissions-mapping
+    description: "Grünerator Permissions - Benutzerberechtigungen und Rollen"
+    expression: |
+      # Berechtigungen basierend auf Gruppen und User-Status
+      permissions = []
+      roles = []
+      
+      # Admin-Berechtigung
+      if request.user.is_superuser:
+          permissions.extend(["admin", "manage_users", "manage_settings"])
+          roles.append("administrator")
+      
+      # Staff-Berechtigung  
+      if request.user.is_staff:
+          permissions.extend(["moderate", "manage_content"])
+          roles.append("moderator")
+      
+      # Basis-Berechtigungen für alle aktiven Benutzer
+      if request.user.is_active:
+          permissions.extend(["read", "write", "profile_edit"])
+          roles.append("user")
+      
+      # Gruppen-basierte Berechtigungen
+      for group in request.user.ak_groups.all():
+          group_name = group.name.lower()
+          if "admin" in group_name:
+              permissions.append("group_admin")
+              roles.append("group_administrator")
+          elif "editor" in group_name:
+              permissions.append("content_edit")
+              roles.append("editor")
+          elif "viewer" in group_name:
+              permissions.append("read_only")
+              roles.append("viewer")
+      
+      return {
+          "permissions": list(set(permissions)),  # Remove duplicates
+          "roles": list(set(roles)),
+          "can_admin": request.user.is_superuser,
+          "can_moderate": request.user.is_staff,
+          "access_level": "admin" if request.user.is_superuser else "staff" if request.user.is_staff else "user"
+      } 
