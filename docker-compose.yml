@@ -32,19 +32,7 @@ services:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.4.1}
     restart: unless-stopped
     command: server
-    entrypoint: |
-      sh -c "
-      echo 'Downloading blueprints from GitHub...' &&
-      mkdir -p /blueprints/custom &&
-      wget -q -O /blueprints/custom/01-property-mappings.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/01-property-mappings.yaml &&
-      wget -q -O /blueprints/custom/02-flows.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/02-flows.yaml &&
-      wget -q -O /blueprints/custom/03-policies.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/03-policies.yaml &&
-      wget -q -O /blueprints/custom/04-application-provider.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/04-application-provider.yaml &&
-      echo 'Blueprints downloaded successfully' &&
-      exec /entrypoint.sh server
-      "
     environment:
-      GITHUB_REPO: ${GITHUB_REPO:-Movm/Authentik}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_REDIS__HOST: redis
       AUTHENTIK_POSTGRESQL__HOST: postgresql
@@ -55,6 +43,7 @@ services:
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
     volumes: 
       - media:/media
+      - blueprints-custom:/blueprints/custom
       - ./branding:/web/dist/custom
       - ./templates:/templates
     labels:
@@ -70,19 +59,7 @@ services:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2025.4.1}
     restart: unless-stopped
     command: worker
-    entrypoint: |
-      sh -c "
-      echo 'Downloading blueprints from GitHub...' &&
-      mkdir -p /blueprints/custom &&
-      wget -q -O /blueprints/custom/01-property-mappings.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/01-property-mappings.yaml &&
-      wget -q -O /blueprints/custom/02-flows.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/02-flows.yaml &&
-      wget -q -O /blueprints/custom/03-policies.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/03-policies.yaml &&
-      wget -q -O /blueprints/custom/04-application-provider.yaml https://raw.githubusercontent.com/${GITHUB_REPO}/main/blueprints/custom/04-application-provider.yaml &&
-      echo 'Blueprints downloaded successfully' &&
-      exec /entrypoint.sh worker
-      "
     environment:
-      GITHUB_REPO: ${GITHUB_REPO:-Movm/Authentik}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_REDIS__HOST: redis
       AUTHENTIK_POSTGRESQL__HOST: postgresql
@@ -93,6 +70,7 @@ services:
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
     volumes: 
       - media:/media
+      - blueprints-custom:/blueprints/custom
       - ./branding:/web/dist/custom
       - ./templates:/templates
     depends_on:
@@ -103,3 +81,4 @@ volumes:
   database: {}
   redis: {}
   media: {}
+  blueprints-custom: {}
