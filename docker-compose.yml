@@ -43,7 +43,7 @@ services:
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
     volumes: 
       - media:/media
-      - ./blueprints:/blueprints
+      - ./blueprints/custom:/blueprints/custom
       - ./branding:/web/dist/custom
       - ./templates:/templates
     labels:
@@ -70,7 +70,7 @@ services:
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
     volumes: 
       - media:/media
-      - ./blueprints:/blueprints
+      - ./blueprints/custom:/blueprints/custom
       - ./branding:/web/dist/custom
       - ./templates:/templates
     depends_on:
